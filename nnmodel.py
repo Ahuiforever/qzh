@@ -33,24 +33,19 @@ QzhLinearModel(
 )
 
 """
-# import glob
+
 import os.path
 import shutil
 import traceback
 from collections import OrderedDict
 from typing import Any, Callable, List, Optional, Type, Union
-from tqdm import tqdm
 
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as fnl
-# from torch.utils.tensorboard import SummaryWriter
-# from tqdm import tqdm
-# from tqdm import trange
 from sklearn.preprocessing import StandardScaler
-# import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
@@ -259,10 +254,9 @@ class DataReader:
         for root, dirs, files in os.walk(root_dir):
             for file in files:
                 self.file_path = os.path.join(root, file)
-                if os.path.isfile(self.file_path) and self.file_path[-4:] == 'xlsx':
+                if os.path.isfile(self.file_path) and (self.file_path[-4:] == 'xlsx' or self.file_path[-3:] == 'csv'):
                     self.file_paths.append(self.file_path)
         print(f'{len(self.file_paths)} files are read from {root_dir}.')
-        # // todo: design the dataset load function, get the parameters in the name of '*.csv'
 
     def _complex(self, keyword: str) -> tuple:
         indices = self.file_path.find(keyword)
@@ -366,18 +360,12 @@ class DataReader:
             # * Collect labels.
             label = self.data_sheet.iloc[:, 2:]
             self.labels.append(label)
-            # try:
-            #     np.array(self.labels).astype(float)
-            # except ValueError:
-            #     print(f'Got bad data from {self.file_path}!')
-            #     print(traceback.format_exc())
-            #     break
-            # // todo: 2. define the return value
 
         self.shape_parameters = np.concatenate(self.shape_parameters, axis=0)  # >>> (rows * for, 11)
         self.labels = np.concatenate(self.labels, axis=0)  # >>> (rows * for, 4)
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         self.x = torch.tensor(self.shape_parameters, dtype=torch.float32)
         self.x = fnl.normalize(self.x, p=2, dim=1)  # Scale to (0, 1) with L2 normalization
         # __Calculate the mean and standard deviation
@@ -390,14 +378,9 @@ class DataReader:
                               7.8541e-04, 1.6054e-03, 1.0729e-05, 2.0793e-02, 9.2274e-04], dtype=torch.float32)
         _var = torch.tensor([1.9525e-06, 6.9122e-07, 2.0225e-02, 6.8118e-02, 1.1622e-07, 1.7514e-06,
                              2.7886e-07, 1.1442e-06, 1.1588e-09, 2.3138e-04, 5.2836e-07], dtype=torch.float32)
-        self.x = (self.x - _mean) / torch.sqrt(_var)
-        # scaler = StandardScaler()
-        # scaler.fit(self.x)
-        # self.x = torch.tensor(scaler.transform(self.x), dtype=torch.float32).to(device)
+        self.x = (self.x - _mean) / torch.sqrt(_var)  # Standardize to normal distribution
         self.x = self.x.to(device)
-        # Standardize to normal distribution
 
-        # print(self.file_path)
         self.y = torch.tensor(self.labels, dtype=torch.float32).to(device)
 
         return self.x, self.y

@@ -14,54 +14,34 @@
 
 Open Anaconda Prompt, type in the following codes.
 
-In which the 'qzh' stands for the name of the environment, customize it if like.
+In which the 'qzh' stands for the name of the environment, customize it if you like.
 
-```powershell
-$powershell
-conda create -n qzh python=3.8 -y
-conda activate qzh
-```
-
-( Recommended ) Or you can simply clone my environment without the 3rd step like this:
-
+#### - Method 1: you can simply clone my environment like this:
 ```powershell
 $powershell
 cd your_download_path/qzh
 conda env create -f requirements.yml
 ```
 
-( Recommended ) Or you can reshow the environment like this:
+#### - Method 2: Or you can reshow the environment like this:
 
 ```powershell
 $powershell
 cd your_download_path/qzh
 conda create  --name your_env_name --file spec-list.txt
 ```
-
-## 3. Install all the requirements(skip if chose **Recommended** codes)
-
-You may encounter some network problems with the following codes. Check [this](https://zhuanlan.zhihu.com/p/87123943).
-
-```powershell
-$powershell
-# if you have VPN
-pip install -r requirements.txt
-# or if not
-pip install -r requirements.txt -i http://pypi.douban.com/simple/ --trusted-host pypi.douban.com
-```
-
 # Usage
 
 ## 1. Prepare the nnmodel python file
 
-Extract the qzh zip pack to your folders, make sure there is no Chinese character within path.
+Extract or Git Clone the qzh zip pack to your folders, make sure there is no Chinese character within path.
 
-Modify the following codes to your own absolute path in nnmodel.py. There should be **3** different datasets:
+Modify the following codes to your own absolute path in nnmodel.py. There should be **4** different datasets:
 
 - **train data** for training
 - **dev data** for cross validation
 - **test data** for testing, which might be not necessary
->- **all data** for calculating the global mean and standard deviation
+- **all data** for calculating the global mean and standard deviation
 
 ```python
 # python, nnmodel.py
@@ -95,30 +75,57 @@ or
 ```
 
 ## 3. Train
-### Step1: Before training
-Copy all the data to the dir named "all". Change the following codes.
+### Before training: IF you are using a different dataset from defaults, RE-compute the mean and  standard deviation with the following steps.
+#### step1： Copy all the data to the dir named "all". Change the following codes.
 ```python
 train_data = DataReader(r'E:\Work\qzh\train') ->
 train_data = DataReader(r'E:\Work\qzh\all')
 ```
-Then break line 182 of the code
+#### step2: Then Uncomment the following codes. Break line of the code after 'print'
 ```python
-    # __Calculate the mean and standard deviation
-    # _mean = torch.mean(self.x, dim=0)
-    # _var = torch.var(self.x, dim=0)
-    # print(f"mean: {_mean}"
-    #       f"var: {_var}")
-    # __=========================================
+# __Calculate the mean and standard deviation
+ _mean = torch.mean(self.x, dim=0)
+ _var = torch.var(self.x, dim=0)
+ print(f"mean: {_mean}"
+       f"var: {_var}")
+# __=========================================
+============MARK BREAK POINT HERE============
+_mean = torch.tensor([2.0789e-03, 1.2479e-03, 9.1428e-01, 2.7399e-01, 3.7701e-04, 1.9827e-03,
+                          7.8541e-04, 1.6054e-03, 1.0729e-05, 2.0793e-02, 9.2274e-04], dtype=torch.float32)
+_var = torch.tensor([1.9525e-06, 6.9122e-07, 2.0225e-02, 6.8118e-02, 1.1622e-07, 1.7514e-06,
+                         2.7886e-07, 1.1442e-06, 1.1588e-09, 2.3138e-04, 5.2836e-07], dtype=torch.float32)
 ```
-```powershell
+#### step3: Then run the *train.py* with debug mode to get the *_mean* and *_var*.
+![img.png](img.png)
+#### step4: Comment the codes. Renew the *_mean* and *_var* with the printed values.
+```python
+# __Calculate the mean and standard deviation
+#  _mean = torch.mean(self.x, dim=0)
+#  _var = torch.var(self.x, dim=0)
+#  print(f"mean: {_mean}"
+#        f"var: {_var}")
+# __=========================================
+=========YOUR NEW MEAN AND VAR HERE==========
+_mean = torch.tensor([2.0789e-03, 1.2479e-03, 9.1428e-01, 2.7399e-01, 3.7701e-04, 1.9827e-03,
+                          7.8541e-04, 1.6054e-03, 1.0729e-05, 2.0793e-02, 9.2274e-04], dtype=torch.float32)
+_var = torch.tensor([1.9525e-06, 6.9122e-07, 2.0225e-02, 6.8118e-02, 1.1622e-07, 1.7514e-06,
+                         2.7886e-07, 1.1442e-06, 1.1588e-09, 2.3138e-04, 5.2836e-07], dtype=torch.float32)
+```
+#### step5: Change back to the original path and Train.
+```python
+train_data = DataReader(r'E:\Work\qzh\all') ->
+train_data = DataReader(r'E:\Work\qzh\train')
+
 $powershell
 conda activate qzh
 cd ./qzh
 python train.py
 ```
-### Step2: 
-```python
-
+#### step6: Visualize the training process
+Open your cmd or terminal, input the following command to get into tensorboard. Modify if you are using a different path.
+```bash
+$ powershell
+tensorboard --logdir="qzh/tensorboard" --port=6007
 ```
 ## 4. Reasoning
 

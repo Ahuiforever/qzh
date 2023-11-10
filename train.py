@@ -4,14 +4,14 @@
 # @Author  : Ahuiforever
 # @File    : train.py
 # @Software: PyCharm
+import traceback
+
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import torch.optim as optim
-# from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-# from tqdm import tqdm
-from tqdm import trange
+from tqdm import trange, tqdm
 
 from nnmodel import *
 from utils import ModelSaver
@@ -19,10 +19,9 @@ from utils import ModelSaver
 
 def save_curve(input_cpu_data1: np.ndarray,
                input_cpu_data2: np.ndarray,
-               input_cpu_data3: np.ndarray,
                _epoch: int,
                train: bool,
-               ):
+               ) -> None:
     labels = ['Qext', 'Qabs', 'Qsca', 'ASY']
     colors = ['red', 'green', 'blue', 'cyan']
     fig = plt.figure(figsize=(20, 15))
@@ -57,18 +56,14 @@ def save_curve(input_cpu_data1: np.ndarray,
                          y=dots[x],
                          color='black', s=2, linewidths=None)
 
-        # Add the second axis X
-        # _x = np.sort(np.random.choice(np.arange(x.shape[0]), size=20, replace=False))
-        # axs[idx].twiny()
-        # axs[idx].set_xlabel('n_s')
-        # axs[idx].set_xticks(_x)
-        # axs[idx].set_xticklabels(input_cpu_data3[_x], rotation=45)
-
         axs[idx].set_title(label)
         axs[idx].set_xlabel('i-th Shape Parameters')
         axs[idx].set_ylabel('Corresponding Value')
-    if epoch == 1 and os.path.exists("plots/{_epoch}th_{'train' if train else 'Val'}_Fit.png"):
-        shutil.rmtree("./plots")
+    if _epoch == 0 and train is True:
+        try:
+            shutil.rmtree('./plots')
+        except FileNotFoundError:
+            tqdm.write('Created directory ./plots.')
         os.mkdir('./plots')
     fig.savefig(f"plots/{_epoch}th_{'train' if train else 'Val'}_Fit.png")
     plt.close()
@@ -76,22 +71,22 @@ def save_curve(input_cpu_data1: np.ndarray,
 
 if __name__ == '__main__':
     # ? 实例化路径检查器
-    log_path = './logs_of_qzh_linear_model'
+    log_path = './tensorboard'
     pc = PathChecker(log_path)
     pc(del_=True)
 
     # ? 日志板
     writer = SummaryWriter(log_path)
-    # * tensorboard --logdir="qzh/logs_of_qzh_linear_model" --port=6007
+    # $ tensorboard --logdir="qzh/tensorboard" --port=6007
 
     # ? 实例化模型
     # qzh = QzhLinearModel()
     # qzh = QzhConv1D()
     qzh = QzhResConv1D(BasicBlock,
-                       # [2, 2, 2, 2, 0],  # res19
+                       [2, 2, 2, 2, 0],  # res19
                        # [3, 4, 6, 3, 0],  # res35
                        # [3, 4, 14, 3, 0],  # res51
-                       [3, 4, 23, 3, 0],  # res102
+                       # [3, 4, 23, 3, 0],  # res102
                        4)
 
     # ? 实例化数据读取器, 实例化数据集
@@ -136,7 +131,7 @@ if __name__ == '__main__':
         scheduler=scheduler,
         checkpoint_interval=10,
         max_checkpoints_to_keep=10,
-        checkpoint_dir="./qzh_mlogs",  # % qzh model save directory
+        checkpoint_dir="./qzh_weights",  # % qzh model save directory
     )
 
     # ? 调用GPU并训练
@@ -152,7 +147,6 @@ if __name__ == '__main__':
         qzh.train()
         total_train_accuracy = 0
         total_loss = 0
-        input_data = torch.tensor([]).to(device)
         output_data = torch.tensor([]).to(device)
         target_data = torch.tensor([]).to(device)
         batch_pbar = tqdm(
@@ -177,12 +171,10 @@ if __name__ == '__main__':
             total_loss += loss
 
             # cache the output and target data
-            input_data = torch.concatenate([input_data, train_x], dim=0)
             output_data = torch.concatenate([output_data, train_y], dim=0)
             target_data = torch.concatenate([target_data, target_y], dim=0)
 
         # Calculate the Mean Absolute Percentile Error, MAPE
-        input_data = input_data.view(-1,)
         output_datas = output_data.view(-1,)
         target_datas = target_data.view(-1,)
         assert output_datas.shape == target_datas.shape
@@ -192,7 +184,6 @@ if __name__ == '__main__':
         # Save the training prediction data and ground truth data fit curve.
         save_curve(output_data.detach().cpu().numpy(),
                    target_data.detach().cpu().numpy(),
-                   input_data.detach().cpu().numpy(),
                    epoch,
                    train=True,
                    )
@@ -206,14 +197,8 @@ if __name__ == '__main__':
         with torch.no_grad():
             total_dev_loss = 0
             total_dev_accuracy = 0
-            val_input_data = torch.tensor([]).to(device)
             val_output_data = torch.tensor([]).to(device)
             val_target_data = torch.tensor([]).to(device)
-            # for dev_idx, dev_data in tqdm(enumerate(dev_loader),
-            #                               desc='Batch Training',
-            #                               total=len(dev_loader),
-            #                               leave=False,
-            #                               position=0):
             for dev_idx, dev_data in enumerate(dev_loader):
                 dev_x, dev_target_y = dev_data
                 dev_y = qzh(dev_x)
@@ -222,14 +207,12 @@ if __name__ == '__main__':
                 dev_correct_predictions = abs(dev_y - dev_target_y) / dev_target_y <= tolerance
                 total_dev_accuracy += dev_correct_predictions.sum().item() / dev_target_y.numel()
                 # cache the output and target data
-                val_input_data = torch.concatenate([val_input_data, dev_x], dim=0)
                 val_output_data = torch.concatenate([val_output_data, dev_y], dim=0)
                 val_target_data = torch.concatenate([val_target_data, dev_target_y], dim=0)
 
         dev_accuracy = total_dev_accuracy / len(dev_loader)
-        val_loss = total_dev_loss / len(dev_loader)  # % Mind if it works.
+        val_loss = total_dev_loss / len(dev_loader)
         # Calculate the Mean Absolute Percentile Error, MAPE
-        val_input_data = val_input_data.view(-1,)
         val_output_datas = val_output_data.view(-1,)
         val_target_datas = val_target_data.view(-1,)
         assert val_output_datas.shape == val_target_datas.shape
@@ -239,7 +222,6 @@ if __name__ == '__main__':
         # Save the Validating prediction data and ground truth data fit curve.
         save_curve(val_output_data.detach().cpu().numpy(),
                    val_target_data.detach().cpu().numpy(),
-                   val_input_data.detach().cpu().numpy(),
                    epoch,
                    train=False,
                    )
