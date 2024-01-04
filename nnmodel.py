@@ -48,6 +48,7 @@ import torch.nn.functional as fnl
 from sklearn.preprocessing import StandardScaler
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
+from predict import predict_loader
 
 
 # ? 定义模型
@@ -248,7 +249,7 @@ class QzhResConv1D(nn.Module):
 
 # ? 读取数据
 class DataReader:
-    def __init__(self, root_dir: str):
+    def __init__(self, root_dir: str, contain_xlsx_file: str = ''):
         self.root_dir = root_dir
         self.file_paths = []
         for root, dirs, files in os.walk(root_dir):
@@ -361,6 +362,8 @@ class DataReader:
             label = self.data_sheet.iloc[:, 2:]
             self.labels.append(label)
 
+        if self.contain_xlsx_file != '':
+            self.shape_parameters.append(predict_loader(self.contain_xlsx_file))
         self.shape_parameters = np.concatenate(self.shape_parameters, axis=0)  # >>> (rows * for, 11)
         self.labels = np.concatenate(self.labels, axis=0)  # >>> (rows * for, 4)
 

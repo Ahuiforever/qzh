@@ -75,7 +75,7 @@ or
 ```
 
 ## 3. Train
-### Before training: IF you are using a different dataset from defaults, RE-compute the mean and  standard deviation with the following steps.
+### Before training: IF you are using a different dataset from defaults, RE-compute the mean and standard deviation with the following steps.
 #### step1： Copy all the data to the dir named "all". Change the following codes.
 ```python
 train_data = DataReader(r'E:\Work\qzh\train') ->
@@ -127,6 +127,17 @@ Open your cmd or terminal, input the following command to get into tensorboard. 
 $ powershell
 tensorboard --logdir="qzh/tensorboard" --port=6007
 ```
+#### step7: Get the latest version by git pull
+```bash
+$ powershell
+git pull master
+```
 ## 4. Reasoning
 
-*Still writing...*
+#### step1: Modify the _mean and _var in the codes.
+
+#### step2: Then run the predict.py with the following method.
+```bash
+$ powershell
+python predict.py --input result.xlsx --output prediction_outputs
+```

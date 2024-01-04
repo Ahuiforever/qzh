@@ -4,10 +4,7 @@
 # @Author  : Ahuiforever
 # @File    : train.py
 # @Software: PyCharm
-import traceback
 
-import numpy as np
-import torch
 import matplotlib.pyplot as plt
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
