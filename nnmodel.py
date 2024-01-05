@@ -50,15 +50,17 @@ from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
 
-def predict_loader(xlsx_file: str):
+def predict_loader(xlsx_file: str) -> np.ndarray:
+    """
+    Copied from predict.py -- reshape(-1, 11) instead.
+    """
     df = pd.read_excel(xlsx_file)
     x = df.to_numpy()
+    x[:, [4, 5, 6, 7]] *= .01  # re, im
+    x[:, [2]] *= 0.01  # f
+    x[:, [1]] *= .1  # df
     # >>> read as: c, df, f, r, re1, im1, re2, im2, lambda, n_s, k0
     # >>> transpose to: df, k0, lambda, n_s, f, re1, im1, re2, im2, r, c
-    # todo 4: transform x to tensor
-    # * Cause in nnmodel.py the x are concatenate to the shape parameters to
-    # * calculate the standard deviation and the mean, x here are not supposed
-    # * to be transformed to Tensor.
     return x[:, [1, -1, -3, -2, 2, 4, 5, 6, 7, 3, 0]].reshape(-1, 11)
 
 
@@ -264,6 +266,7 @@ class DataReader:
         self.root_dir = root_dir
         self.file_paths = []
         self.contain_xlsx_file = contain_xlsx_file
+        self._mean, self._var = [None, None]
         for root, dirs, files in os.walk(root_dir):
             for file in files:
                 self.file_path = os.path.join(root, file)
@@ -389,16 +392,25 @@ class DataReader:
         # print(f"mean: {_mean}"
         #       f"var: {_var}")
         # __=========================================
-        _mean = torch.tensor([2.0811e-03, 1.2477e-03, 9.1424e-01, 2.7408e-01, 3.8677e-04, 2.0142e-03,
-                              7.9816e-04, 1.6304e-03, 1.0725e-05, 2.0788e-02, 9.2257e-04], dtype=torch.float32)
-        _var = torch.tensor([1.9658e-06, 6.9116e-07, 2.0229e-02, 6.8132e-02, 3.8409e-07, 4.5327e-06,
-                             7.3582e-07, 2.9000e-06, 1.1584e-09, 2.3134e-04, 5.2825e-07], dtype=torch.float32)
-        self.x = (self.x - _mean) / torch.sqrt(_var)  # Standardize to normal distribution
+        # FROM NOW ON: Change the mean and var at the property codes.
+        self.x = (self.x - self.mean) / torch.sqrt(self.var)  # Standardize to normal distribution
         self.x = self.x.to(device)
 
         self.y = torch.tensor(self.labels, dtype=torch.float32).to(device)
 
         return self.x, self.y
+
+    @property
+    def mean(self):
+        self._mean = torch.tensor([2.0784e-03, 1.2477e-03, 9.1424e-01, 2.7408e-01, 3.7697e-04, 1.9823e-03,
+                                   7.8525e-04, 1.6051e-03, 1.0725e-05, 2.0788e-02, 9.2257e-04], dtype=torch.float32)
+        return self._mean
+
+    @property
+    def var(self):
+        self._var = torch.tensor([1.9524e-06, 6.9116e-07, 2.0229e-02, 6.8133e-02, 1.1619e-07, 1.7512e-06,
+                                  2.7883e-07, 1.1441e-06, 1.1584e-09, 2.3134e-04, 5.2825e-07], dtype=torch.float32)
+        return self._var
 
 
 # ? 自定义数据集

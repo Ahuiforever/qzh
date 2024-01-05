@@ -7,8 +7,10 @@
 
 import argparse
 import csv
+import glob
 import os
 
+import numpy as np
 import pandas as pd
 import torch
 # from tqdm import tqdm
@@ -35,19 +37,53 @@ def write_results_to_csv(result, file_number, result_folder):
             writer.writerow(result_)
 
 
-def predict_loader(xlsx_file: str):
+def predict_loader(xlsx_file: str) -> np.ndarray:
     df = pd.read_excel(xlsx_file)
     x = df.to_numpy()
+    x[:, [4, 5, 6, 7]] *= .01  # re, im
+    x[:, [2]] *= .01  # f
+    x[:, [1]] *= .1  # df
     # >>> read as: c, df, f, r, re1, im1, re2, im2, lambda, n_s, k0
     # >>> transpose to: df, k0, lambda, n_s, f, re1, im1, re2, im2, r, c
     return x[:, [1, -1, -3, -2, 2, 4, 5, 6, 7, 3, 0]].reshape(-1, 1, 11)
 
 
+def type_in_loader(typein: Union[dict, list]):
+    if type(typein) is dict:
+        x = [typein[key] for key in ['df', 'k0', 'lambda', 'n_s', 'f', 're1', 'im1', 're2', 'im2', 'r', 'c']]
+    elif type(typein) is list:
+        x = typein
+    else:
+        raise TypeError(f"Expect dict or list, got {type(typein)} instead.")
+
+    return np.array(x).reshape(-1, 1, 11)
+
+
+def get_last_pth():
+    weight = sorted(glob.glob('./qzh_weights/*.pth'), key=os.path.getmtime, reverse=True)[0]
+    print(f'Reasoning with {weight}...')
+    return weight
+
+
+def get_best_pth():
+    weights = glob.glob('./qzh_weights/*.pth')
+    weight = sorted(weights, key=lambda w: w.split('_')[2], reverse=True)[0]
+    print(f'Reasoning with {weight}...')
+    return weight
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="Predict and save results.")
-    parser.add_argument("--input", type=str, default="./result.xlsx", help="Your input data file in xlsx format.")
-    parser.add_argument("--output", type=str, default="./prediction_output", help="Custom save path for the results")
+    parser.add_argument("--input", type=str, default="./result.xlsx",
+                        help="Your input data file in xlsx format.")
+    parser.add_argument("--type_in", type=str, default=None,
+                        help="Type in your 11 parameters in certain format (dictionary or list). "
+                             "Notice if the distribution has changed.")
+    parser.add_argument("--output", type=str, default="./prediction_output",
+                        help="Custom save path for the results.")
+    parser.add_argument("--weight", type=str, default="./qzh_weights/best.pth",
+                        help="Select the weights to use for prediction.")
     args = parser.parse_args()
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -61,9 +97,15 @@ if __name__ == '__main__':
                        # [3, 4, 23, 3, 0],  # res102
                        4).to(device)
 
-    checkpoint = torch.load(r'.\qzh_weights\best.pth')
+    checkpoint = None
+    if 'best.pth' in args.weight:
+        checkpoint = torch.load(get_best_pth())
+    elif 'last.pth' in args.weight:
+        checkpoint = torch.load(get_last_pth())
+    else:
+        checkpoint = torch.load(args.weight)
+        print(f'Reasoning with {args.weight}...')
     qzh.load_state_dict(checkpoint["model_state_dict"])
-
     qzh.eval()
 
     # predict_data = DataReader(r'D:\Work\qzh\test')
@@ -82,15 +124,13 @@ if __name__ == '__main__':
         #     prediction = qzh(predict_x)
         #    predictions.append(prediction)
 
-        predict_x = torch.tensor(predict_loader(args.input), dtype=torch.float32)
-        
+        predict_x = torch.tensor(predict_loader(args.input) if not args.type_in else type_in_loader(args.type_in),
+                                 dtype=torch.float32)
+
         # Caution! Here are the same _mean and _var as in the nnmodel.py file.
-        _mean = torch.tensor([2.0811e-03, 1.2477e-03, 9.1424e-01, 2.7408e-01, 3.8677e-04, 2.0142e-03,
-                              7.9816e-04, 1.6304e-03, 1.0725e-05, 2.0788e-02, 9.2257e-04], dtype=torch.float32)
-        _var = torch.tensor([1.9658e-06, 6.9116e-07, 2.0229e-02, 6.8132e-02, 3.8409e-07, 4.5327e-06,
-                             7.3582e-07, 2.9000e-06, 1.1584e-09, 2.3134e-04, 5.2825e-07], dtype=torch.float32)
-        
-        predict_x = (predict_x - _mean) / torch.sqrt(_var)  # Standardize to normal distribution
+        var_mean_sync = DataReader('')
+        predict_x = (predict_x - var_mean_sync.mean) / torch.sqrt(var_mean_sync.var)
+        # Standardize to normal distribution
         predict_x = predict_x.to(device)
         predictions = qzh(predict_x)
         # todo 3: figure out in what format does this model output
