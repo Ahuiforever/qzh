@@ -134,10 +134,22 @@ git pull master
 ```
 ## 4. Reasoning
 
-#### step1: Modify the _mean and _var in the codes.
+#### step1: Amend the _mean and _var in the codes, the same as nnmodel.py.
 
-#### step2: Then run the predict.py with the following method.
+#### step2: Then run the predict.py with the following command in CMD.
 ```bash
 $ powershell
 python predict.py --input result.xlsx --output prediction_outputs
 ```
+Instructions: 
+- --input: The xlsx file which contains 11 parameters filled in sequentially, one row for each input.
+  - According to the existing result.xlsx file, your input file should be like this:
+
+|     | column 1 | column 2 | column 3 | column 4 | column 5 | column 6 | column 7 | column 8 | column 9 | column 10 | column 11 |
+|-----|----------|----------|----------|----------|----------|----------|----------|----------|----------|-----------|-----------|
+|     | c        | df       | f        | r        | re1      | im1      | re2      | im2      | lambda   | n_s       | k0        |
+| x 1 | 1        | 18       | 60       | 20       | 195      | 079      | 155      | 000      | 1600     | 1000      | 1.2       |
+| x 2 | 1        | 18       | 60       | 20       | 195      | 079      | 155      | 000      | 1600     | 1150      | 1.2       |
+| ... | ...      | ...      | ...      | ...      | ...      | ...      | ...      | ...      | ...      | ...       | ...       |
+
+- --output: The dir path where the result csv files are stored.

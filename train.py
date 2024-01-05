@@ -87,7 +87,9 @@ if __name__ == '__main__':
                        4)
 
     # ? 实例化数据读取器, 实例化数据集
-    train_data = DataReader(r'E:\Work\qzh\train')
+    train_data = DataReader(r'E:\Work\qzh',
+                            # 'result.xlsx',
+                            )
     dev_data = DataReader(r'E:\Work\qzh\dev')
     # test_data = DataReader(r'D:\Work\qzh\test')
 

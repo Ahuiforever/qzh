@@ -48,7 +48,18 @@ import torch.nn.functional as fnl
 from sklearn.preprocessing import StandardScaler
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
-from predict import predict_loader
+
+
+def predict_loader(xlsx_file: str):
+    df = pd.read_excel(xlsx_file)
+    x = df.to_numpy()
+    # >>> read as: c, df, f, r, re1, im1, re2, im2, lambda, n_s, k0
+    # >>> transpose to: df, k0, lambda, n_s, f, re1, im1, re2, im2, r, c
+    # todo 4: transform x to tensor
+    # * Cause in nnmodel.py the x are concatenate to the shape parameters to
+    # * calculate the standard deviation and the mean, x here are not supposed
+    # * to be transformed to Tensor.
+    return x[:, [1, -1, -3, -2, 2, 4, 5, 6, 7, 3, 0]].reshape(-1, 11)
 
 
 # ? 定义模型
@@ -252,6 +263,7 @@ class DataReader:
     def __init__(self, root_dir: str, contain_xlsx_file: str = ''):
         self.root_dir = root_dir
         self.file_paths = []
+        self.contain_xlsx_file = contain_xlsx_file
         for root, dirs, files in os.walk(root_dir):
             for file in files:
                 self.file_path = os.path.join(root, file)
@@ -377,10 +389,10 @@ class DataReader:
         # print(f"mean: {_mean}"
         #       f"var: {_var}")
         # __=========================================
-        _mean = torch.tensor([2.0789e-03, 1.2479e-03, 9.1428e-01, 2.7399e-01, 3.7701e-04, 1.9827e-03,
-                              7.8541e-04, 1.6054e-03, 1.0729e-05, 2.0793e-02, 9.2274e-04], dtype=torch.float32)
-        _var = torch.tensor([1.9525e-06, 6.9122e-07, 2.0225e-02, 6.8118e-02, 1.1622e-07, 1.7514e-06,
-                             2.7886e-07, 1.1442e-06, 1.1588e-09, 2.3138e-04, 5.2836e-07], dtype=torch.float32)
+        _mean = torch.tensor([2.0811e-03, 1.2477e-03, 9.1424e-01, 2.7408e-01, 3.8677e-04, 2.0142e-03,
+                              7.9816e-04, 1.6304e-03, 1.0725e-05, 2.0788e-02, 9.2257e-04], dtype=torch.float32)
+        _var = torch.tensor([1.9658e-06, 6.9116e-07, 2.0229e-02, 6.8132e-02, 3.8409e-07, 4.5327e-06,
+                             7.3582e-07, 2.9000e-06, 1.1584e-09, 2.3134e-04, 5.2825e-07], dtype=torch.float32)
         self.x = (self.x - _mean) / torch.sqrt(_var)  # Standardize to normal distribution
         self.x = self.x.to(device)
 
