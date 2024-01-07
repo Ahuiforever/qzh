@@ -33,7 +33,7 @@ QzhLinearModel(
 )
 
 """
-
+import math
 import os.path
 import shutil
 import traceback
@@ -56,6 +56,7 @@ def predict_loader(xlsx_file: str) -> np.ndarray:
     """
     df = pd.read_excel(xlsx_file)
     x = df.to_numpy()
+    print(f'{x.shape[0]} data are read from {xlsx_file}.')
     x[:, [4, 5, 6, 7]] *= .01  # re, im
     x[:, [2]] *= 0.01  # f
     x[:, [1]] *= .1  # df
@@ -385,15 +386,24 @@ class DataReader:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.x = torch.tensor(self.shape_parameters, dtype=torch.float32)
-        self.x = fnl.normalize(self.x, p=2, dim=1)  # Scale to (0, 1) with L2 normalization
+
+        # _min = torch.min(self.x)
+        # _max = torch.max(self.x)
+
+        _min = 0.
+        _max = 3100.
+        self.x = (self.x - _min) / (_max - _min)  # Min-Max rescale to (0, 1)
+
+        # self.x = fnl.normalize(self.x, p=2, dim=1)  # Scale to (0, 1) with L2 normalization
+        # self.norm = torch.norm(self.x)
         # __Calculate the mean and standard deviation
-        # _mean = torch.mean(self.x, dim=0)
-        # _var = torch.var(self.x, dim=0)
-        # print(f"mean: {_mean}"
+        # _mean = torch.mean(self.x)
+        # _var = torch.var(self.x)
+        # print(f"mean: {_mean} \n"
         #       f"var: {_var}")
         # __=========================================
-        # FROM NOW ON: Change the mean and var at the property codes.
-        self.x = (self.x - self.mean) / torch.sqrt(self.var)  # Standardize to normal distribution
+        # FROM NOW ON: Change the mean and var at the @property codes.
+        self.x = (self.x - self.mean) / math.sqrt(self.var)  # Standardize to normal distribution
         self.x = self.x.to(device)
 
         self.y = torch.tensor(self.labels, dtype=torch.float32).to(device)
@@ -402,14 +412,18 @@ class DataReader:
 
     @property
     def mean(self):
-        self._mean = torch.tensor([2.0784e-03, 1.2477e-03, 9.1424e-01, 2.7408e-01, 3.7697e-04, 1.9823e-03,
-                                   7.8525e-04, 1.6051e-03, 1.0725e-05, 2.0788e-02, 9.2257e-04], dtype=torch.float32)
+        # self._mean = torch.tensor([2.0784e-03, 1.2477e-03, 9.1424e-01, 2.7408e-01, 3.7697e-04, 1.9823e-03,
+        #                             7.8525e-04, 1.6051e-03, 1.0725e-05, 2.0788e-02, 9.2257e-04], dtype=torch.float32)
+        # self._mean = 0.04787701740860939  # all + xlsx
+        self._mean = 0.04772108793258667  # train
         return self._mean
 
     @property
     def var(self):
-        self._var = torch.tensor([1.9524e-06, 6.9116e-07, 2.0229e-02, 6.8133e-02, 1.1619e-07, 1.7512e-06,
-                                  2.7883e-07, 1.1441e-06, 1.1584e-09, 2.3134e-04, 5.2825e-07], dtype=torch.float32)
+        # self._var = torch.tensor([1.9524e-06, 6.9116e-07, 2.0229e-02, 6.8133e-02, 1.1619e-07, 1.7512e-06,
+        #                           2.7883e-07, 1.1441e-06, 1.1584e-09, 2.3134e-04, 5.2825e-07], dtype=torch.float32)
+        # self._var = 0.021432045847177505  # all + xlsx
+        self._var = 0.021363060921430588  # train
         return self._var
 
 

@@ -8,12 +8,10 @@
 import argparse
 import csv
 import glob
+import math
 import os
 
-import numpy as np
-import pandas as pd
 import torch
-# from tqdm import tqdm
 
 from nnmodel import *
 
@@ -43,6 +41,7 @@ def predict_loader(xlsx_file: str) -> np.ndarray:
     x[:, [4, 5, 6, 7]] *= .01  # re, im
     x[:, [2]] *= .01  # f
     x[:, [1]] *= .1  # df
+    print(f'{x.shape[0]} data are read from {xlsx_file}.')
     # >>> read as: c, df, f, r, re1, im1, re2, im2, lambda, n_s, k0
     # >>> transpose to: df, k0, lambda, n_s, f, re1, im1, re2, im2, r, c
     return x[:, [1, -1, -3, -2, 2, 4, 5, 6, 7, 3, 0]].reshape(-1, 1, 11)
@@ -113,23 +112,17 @@ if __name__ == '__main__':
     # predict_loader = DataLoader(dataset=predict_set, batch_size=1, shuffle=True, num_workers=0, drop_last=False)
     # todo 1. Rewrite prediction x load function.
 
-    # predictions = []
-
     with torch.no_grad():
-        # for predict_idx, predict_data in tqdm(
-        #         enumerate(predict_loader(args.input)),
-        #         desc='Reasoning'
-        # ):
-        #     predict_x = predict_data
-        #     prediction = qzh(predict_x)
-        #    predictions.append(prediction)
-
         predict_x = torch.tensor(predict_loader(args.input) if not args.type_in else type_in_loader(args.type_in),
                                  dtype=torch.float32)
 
         # Caution! Here are the same _mean and _var as in the nnmodel.py file.
-        var_mean_sync = DataReader('')
-        predict_x = (predict_x - var_mean_sync.mean) / torch.sqrt(var_mean_sync.var)
+        var_mean_sync = DataReader(r'E:\Work\qzh\all', 'result.xlsx',)
+        # var_mean_sync()
+
+        predict_x = predict_x / 3100.  # Scale to (0, 1) with L2 normalization
+
+        predict_x = (predict_x - var_mean_sync.mean) / math.sqrt(var_mean_sync.var)
         # Standardize to normal distribution
         predict_x = predict_x.to(device)
         predictions = qzh(predict_x)

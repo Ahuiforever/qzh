@@ -134,7 +134,7 @@ git pull master
 ```
 ## 4. Reasoning
 
-#### step1: Amend the _mean and _var in the codes, the same as nnmodel.py.
+#### ~~step1: Amend the _mean and _var in the codes, the same as nnmodel.py.~~
 
 #### step2: Then run the predict.py with the following command in CMD.
 ```bash
