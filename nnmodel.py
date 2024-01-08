@@ -443,28 +443,56 @@ class DataReader:
     @property
     def mean(self):
         # * 1st, calculate the mean and std along the dim-0 | data range: all + xlsx
+        # self._mean = torch.tensor(
+        #     [
+        #         6.4464e-04,
+        #         # 3.8710e-04,
+        #         4.1588e-01,
+        #         1.0152e-01,
+        #         1.1797e-04,
+        #         6.1532e-04,
+        #         2.4387e-04,
+        #         4.9802e-04,
+        #         3.3773e-06,
+        #         6.4503e-03,
+        #         2.8734e-04,
+        #     ],
+        #     dtype=torch.float32,
+        # )
+        # ` dim-0 | data range: train
         self._mean = torch.tensor(
             [
-                6.4464e-04,
+                6.4466e-04,
                 # 3.8710e-04,
-                4.1588e-01,
-                1.0152e-01,
-                1.1797e-04,
-                6.1532e-04,
-                2.4387e-04,
-                4.9802e-04,
-                3.3773e-06,
+                4.1576e-01,
+                9.9920e-02,
+                1.1789e-04,
+                6.1525e-04,
+                2.4381e-04,
+                4.9801e-04,
+                3.3939e-06,
                 6.4503e-03,
-                2.8734e-04,
+                2.8717e-04,
             ],
             dtype=torch.float32,
         )
-        # ` dim-0 | data range: train
-        # self._mean = torch.tensor([6.4466e-04, 3.8710e-04, 4.1576e-01, 9.9920e-02, 1.1789e-04, 6.1525e-04,
-        #                            2.4381e-04, 4.9801e-04, 3.3939e-06, 6.4503e-03, 2.8717e-04], dtype=torch.float32)
         # ` dim-0 | data range: all
-        # self._mean = torch.tensor([6.4466e-04, 3.8710e-04, 4.1581e-01, 1.0140e-01, 1.1794e-04, 6.1531e-04,
-        # 2.4386e-04, 4.9802e-04, 3.3786e-06, 6.4503e-03, 2.8733e-04], dtype=torch.float32)
+        # self._mean = torch.tensor(
+        #     [
+        #         6.4466e-04,
+        #         # 3.8710e-04,
+        #         4.1581e-01,
+        #         1.0140e-01,
+        #         1.1794e-04,
+        #         6.1531e-04,
+        #         2.4386e-04,
+        #         4.9802e-04,
+        #         3.3786e-06,
+        #         6.4503e-03,
+        #         2.8733e-04,
+        #     ],
+        #     dtype=torch.float32,
+        # )
         # * 2nd, calculate the mean and std over all the elements | data range: all + xlsx
         # self._mean = 0.04787701740860939
         # ` over all the elements | data range: train solely
@@ -474,28 +502,56 @@ class DataReader:
     @property
     def var(self):
         # * 1st, calculate the mean and std along the dim-0 | data range: all + xlsx
+        # self._var = torch.tensor(
+        #     [
+        #         2.0786e-09,
+        #         # 0.0000e00,
+        #         6.8391e-02,
+        #         9.2707e-03,
+        #         3.6588e-09,
+        #         6.0131e-10,
+        #         3.8484e-10,
+        #         2.8051e-11,
+        #         7.5751e-11,
+        #         2.7199e-06,
+        #         1.0126e-08,
+        #     ],
+        #     dtype=torch.float32,
+        # )
+        # ` dim-0 | data range: train
         self._var = torch.tensor(
             [
-                2.0786e-09,
+                2.0779e-09,
                 # 0.0000e00,
-                6.8391e-02,
-                9.2707e-03,
-                3.6588e-09,
-                6.0131e-10,
-                3.8484e-10,
-                2.8051e-11,
-                7.5751e-11,
-                2.7199e-06,
-                1.0126e-08,
+                6.8400e-02,
+                8.7546e-03,
+                3.6615e-09,
+                6.0333e-10,
+                3.8613e-10,
+                2.8169e-11,
+                7.6066e-11,
+                2.7333e-06,
+                1.0170e-08,
             ],
             dtype=torch.float32,
         )
-        # ` dim-0 | data range: train
-        # self._var = torch.tensor([2.0779e-09, 0.0000e+00, 6.8400e-02, 8.7546e-03, 3.6615e-09, 6.0333e-10,
-        #                            3.8613e-10, 2.8169e-11, 7.6066e-11, 2.7333e-06, 1.0170e-08], dtype=torch.float32)
         # ` dim-0 | data range: all
-        # self._var = torch.tensor([2.0779e-09, 0.0000e+00, 6.8405e-02, 9.2118e-03, 3.6580e-09, 6.0146e-10,
-        # 3.8494e-10, 2.8060e-11, 7.5774e-11, 2.7209e-06, 1.0130e-08], dtype=torch.float32)
+        # self._var = torch.tensor(
+        #     [
+        #         2.0779e-09,
+        #         # 0.0000e00,
+        #         6.8405e-02,
+        #         9.2118e-03,
+        #         3.6580e-09,
+        #         6.0146e-10,
+        #         3.8494e-10,
+        #         2.8060e-11,
+        #         7.5774e-11,
+        #         2.7209e-06,
+        #         1.0130e-08,
+        #     ],
+        #     dtype=torch.float32,
+        # )
         # * 2nd, calculate the mean and std over all the elements | data range: all + xlsx
         # self._var = 0.021432045847177505
         # ` over all the elements | data range: train solely

@@ -44,7 +44,7 @@ def predict_loader(xlsx_file: str) -> np.ndarray:
     print(f'{x.shape[0]} data are read from {xlsx_file}.')
     # >>> read as: c, df, f, r, re1, im1, re2, im2, lambda, n_s, k0
     # >>> transpose to: df, k0, lambda, n_s, f, re1, im1, re2, im2, r, c
-    return x[:, [1, -3, -2, 2, 4, 5, 6, 7, 3, 0]].reshape(1, 10)
+    return x[:, [1, -3, -2, 2, 4, 5, 6, 7, 3, 0]].reshape(-1, 10)
 
 
 def type_in_loader(typein: Union[dict, list]):
@@ -117,7 +117,7 @@ if __name__ == '__main__':
                                  dtype=torch.float32)
 
         # Caution! Here are the same _mean and _var as in the nnmodel.py file.
-        var_mean_sync = DataReader(r'E:\Work\qzh\all', 'result.xlsx',)
+        var_mean_sync = DataReader('')
         # var_mean_sync()
 
         predict_x = (predict_x - var_mean_sync.min) / (var_mean_sync.max - var_mean_sync.min)
