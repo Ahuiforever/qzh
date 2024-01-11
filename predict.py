@@ -131,14 +131,13 @@ if __name__ == "__main__":
     ).to(device)
 
     checkpoint = None
-    with args.weights as we:
-        if "best.pth" in we:
-            checkpoint = torch.load(get_best_pth(os.path.split(we)[0]))
-        elif "last.pth" in we:
-            checkpoint = torch.load(get_last_pth(os.path.split(we)[0]))
-        else:
-            checkpoint = torch.load(we)
-            print(f"Reasoning with {we}...")
+    if "best.pth" in args.weight:
+        checkpoint = torch.load(get_best_pth(os.path.split(args.weight)[0]))
+    elif "last.pth" in args.weight:
+        checkpoint = torch.load(get_last_pth(os.path.split(args.weight)[0]))
+    else:
+        checkpoint = torch.load(args.weight)
+        print(f"Reasoning with {args.weight}...")
     qzh.load_state_dict(checkpoint["model_state_dict"])
     qzh.eval()
 
