@@ -33,6 +33,7 @@ QzhLinearModel(
 )
 
 """
+import glob
 import math
 import os.path
 import shutil
@@ -61,8 +62,17 @@ def predict_loader(xlsx_file: str) -> np.ndarray:
     x[:, [2]] *= 0.01  # f
     x[:, [1]] *= 0.1  # df
     # >>> read as: c, df, f, r, re1, im1, re2, im2, lambda, n_s, k0
-    # >>> transpose to: df, k0, lambda, n_s, f, re1, im1, re2, im2, r, c
-    return x[:, [1, -3, -2, 2, 4, 5, 6, 7, 3, 0]].reshape(-1, 10)
+    # >>> transpose to: df, k0, lambda, n_s, f, re1, im1, re2, im2, r, c, Qext, Qabs, Qsca, G
+    return x[:, [1, 8, 9, 2, 4, 5, 6, 7, 3, 0, 10, 11, 12, 13]].reshape(-1, 14)  # % 10 --> 实际的输入参数
+
+
+def multi_excel_read(xlsx_file_folder: str):
+    x_list: list = []
+    for xlsx_file in glob.glob(rf"{xlsx_file_folder}/*.xlsx"):  # % xlsx --> csv if needed
+        x_list.append(predict_loader(xlsx_file))
+
+    x = np.concatenate(x_list, axis=0)
+    return x[:, 10], x[:, 10:]  # % 10 是输入和标签的分割
 
 
 # ? 定义模型
@@ -411,7 +421,11 @@ class DataReader:
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.x = torch.tensor(self.shape_parameters, dtype=torch.float32)
+        # =================================================================
+        # self.x = torch.tensor(self.shape_parameters, dtype=torch.float32)
+        self.x = self.shape_parameters
+        self.y = np.expand_dims([';'.join(map(str, label)) for label in self.labels], axis=1)
+        # =================================================================
 
         # __Calculate the min and max value
         # _min = torch.min(self.x)
@@ -419,7 +433,7 @@ class DataReader:
         # __===============================
         # ! Change both the min and max at the codes marked with @property.
 
-        self.x = (self.x - self.min) / (self.max - self.min)
+        # self.x = (self.x - self.min) / (self.max - self.min)
         # Min-Max rescale to (0, 1)
 
         # self.x = fnl.normalize(self.x, p=2, dim=1)  # Scale to (0, 1) with L2 normalization
@@ -432,11 +446,11 @@ class DataReader:
         # __=========================================
         # ! FROM NOW ON: Change both the mean and var at the codes marked with @property.
 
-        self.x = (self.x - self.mean) / torch.sqrt(self.var)
-        # Standardize to normal distribution
-
-        self.x = self.x.to(device)
-        self.y = torch.tensor(self.labels, dtype=torch.float32).to(device)
+        # self.x = (self.x - self.mean) / torch.sqrt(self.var)
+        # # Standardize to normal distribution
+        #
+        # self.x = self.x.to(device)
+        # self.y = torch.tensor(self.labels, dtype=torch.float32).to(device)
 
         return self.x, self.y
 
@@ -576,7 +590,7 @@ class QzhData(Dataset):
         self.target = data[1]
 
     def __getitem__(self, item: int):
-        x = self.data[item].reshape(1, 10)
+        x = self.data[item].reshape(1, 10)  # % 10 --> 实际的输入参数个数
         y = self.target[item]
         return x, y
 
@@ -602,45 +616,66 @@ class PathChecker:
 if __name__ == "__main__":
     # ! Run the main function to compute the mean and standard deviation of train set.
 
-    train_data = DataReader(r"D:\Work\qzh\train")
-    # dev_data = DataReader(r'D:\Work\qzh\dev')
+    train_data = DataReader(r"E:\Work\qzh\train")
+    dev_data = DataReader(r'E:\Work\qzh\dev')
     # test_data = DataReader(r'D:\Work\qzh\test')
 
-    train_set = QzhData(train_data())
+    # =================================================================
+    train_data = np.concatenate(train_data(), axis=1)
+    dev_data = np.concatenate(dev_data(), axis=1)
+
+    sample_headers = ['d_f', 'lambda', 'n_s', 'f', 're1', 'im1', 're2', 'im2', 'r', 'c']
+
+    # label_headers = ['Qext', 'Qabs', 'Qsca', 'g']
+    label_headers = ['label']
+
+    train_dataframe = pd.DataFrame(train_data, columns=sample_headers+label_headers)
+    dev_dataframe = pd.DataFrame(dev_data, columns=sample_headers+label_headers)
+
+    csv_file = 'qzh_single_label_train.csv'
+
+    train_dataframe.to_csv(csv_file, index=False)
+    dev_dataframe.to_csv(csv_file.replace('train', 'dev'), index=False)
+    # =================================================================
+    # train_set = QzhData(train_data())
     # dev_set = QzhData(dev_data())
     # test_set = QzhData(test_data())
 
-    # ? 加载数据
-    # // todo: 1. train_set, dev_set, test_set
-    train_loader = DataLoader(
-        dataset=train_set, batch_size=128, shuffle=True, num_workers=6, drop_last=False
-    )
-    # dev_loader = DataLoader(dataset=dev_set, batch_size=128, shuffle=True, num_workers=6, drop_last=False)
-    # test_loader = DataLoader(dataset=test_set, batch_size=128, shuffle=True, num_workers=6, drop_last=False)
 
-    # Create a StandardScaler instance
-    scaler_ = StandardScaler()
 
-    mean = 0.0
-    std = 0.0
-    total_samples = 0
-    for input_x, output_y in train_loader:
-        batch_size = input_x.size(0)
-
-        # # Normalize x to the scale of (0, 1)
-        # normalized_x = f.normalize(input_x, p=2, dim=1)
-
-        # Fit the scaler on the data to compute mean and standard deviation
-        scaler_.fit(input_x)
-
-        # Get the computed mean and standard deviation
-        mean += scaler_.mean_
-        std += scaler_.scale_
-
-        total_samples += 1
-
-    mean /= total_samples
-    std /= total_samples
-
-    print("Mean values:", mean)
-    print("Standard deviation values:", std)
+# =================================================================
+    # # ? 加载数据
+    # # // todo: 1. train_set, dev_set, test_set
+    # train_loader = DataLoader(
+    #     dataset=train_set, batch_size=128, shuffle=True, num_workers=6, drop_last=False
+    # )
+    # # dev_loader = DataLoader(dataset=dev_set, batch_size=128, shuffle=True, num_workers=6, drop_last=False)
+    # # test_loader = DataLoader(dataset=test_set, batch_size=128, shuffle=True, num_workers=6, drop_last=False)
+    #
+    # # Create a StandardScaler instance
+    # scaler_ = StandardScaler()
+    #
+    # mean = 0.0
+    # std = 0.0
+    # total_samples = 0
+    # for input_x, output_y in train_loader:
+    #     batch_size = input_x.size(0)
+    #
+    #     # # Normalize x to the scale of (0, 1)
+    #     # normalized_x = f.normalize(input_x, p=2, dim=1)
+    #
+    #     # Fit the scaler on the data to compute mean and standard deviation
+    #     scaler_.fit(input_x)
+    #
+    #     # Get the computed mean and standard deviation
+    #     mean += scaler_.mean_
+    #     std += scaler_.scale_
+    #
+    #     total_samples += 1
+    #
+    # mean /= total_samples
+    # std /= total_samples
+    #
+    # print("Mean values:", mean)
+    # print("Standard deviation values:", std)
+# =================================================================

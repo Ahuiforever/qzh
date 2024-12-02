@@ -84,23 +84,21 @@ if __name__ == '__main__':
                        # [3, 4, 6, 3, 0],  # res35
                        # [3, 4, 14, 3, 0],  # res51
                        # [3, 4, 23, 3, 0],  # res102
-                       4)
+                       4)  # % 输出数据的个数，和nnmodel中的对应
 
     # ? 实例化数据读取器, 实例化数据集
-    train_data = DataReader(r'E:\Work\qzh\train',
-                            # 'result.xlsx',
-                            )
-    dev_data = DataReader(r'E:\Work\qzh\dev')
+    train_data = multi_excel_read(r'E:\Work\qzh\train')  # % 你存放的所有训练xsls的文件夹
+    dev_data = multi_excel_read(r'E:\Work\qzh\dev')
     # test_data = DataReader(r'D:\Work\qzh\test')
 
-    train_set = QzhData(train_data())
-    dev_set = QzhData(dev_data())
+    train_set = QzhData(train_data)
+    dev_set = QzhData(dev_data)
     # test_set = QzhData(test_data())
 
     # ? 加载数据
     # // todo: 1. train_set, dev_set, test_set
-    train_loader = DataLoader(dataset=train_set, batch_size=128, shuffle=True, num_workers=0, drop_last=False)
-    dev_loader = DataLoader(dataset=dev_set, batch_size=128, shuffle=True, num_workers=0, drop_last=False)
+    train_loader = DataLoader(dataset=train_set, batch_size=128, shuffle=True, num_workers=6, drop_last=True)
+    dev_loader = DataLoader(dataset=dev_set, batch_size=128, shuffle=True, num_workers=6, drop_last=False)
     # test_loader = DataLoader(dataset=test_set, batch_size=128, shuffle=True, num_workers=6, drop_last=False)
 
     # ? 定义回归损失函数 | L1Loss, SmoothL1Loss
